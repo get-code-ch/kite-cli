@@ -1,12 +1,12 @@
 {
   "name": "cli",
-  "api_key": "",
+  "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFu",
   "server": "192.168.10.62",
   "port": "9443",
   "ssl": true,
   "endpoint": {
     "id": "*",
-    "address": "*",
+    "address": "cli_1",
     "host": "precision",
     "type": "cli",
     "domain": "local"

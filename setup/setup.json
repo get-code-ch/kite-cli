@@ -1,0 +1,20 @@
+{
+  "api_key": "ch4ng3-m3",
+  "description": "This sample file to push initial configuration to server",
+  "config": {
+    "src": "default.json",
+    "dest": "./config/default.json"
+  },
+  "telegram": {
+    "src": "telegram.json",
+    "dest": "./config/telegram.json"
+  },
+  "cert_key": {
+    "src": "server.key",
+    "dest": "./config/ssl/server.key"
+  },
+  "cert_crt": {
+    "src": "server.crt",
+    "dest": "./config/ssl/server.crt"
+  }
+}

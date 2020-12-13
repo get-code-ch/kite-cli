@@ -1,0 +1,66 @@
+{
+  "api_key": "QakFwYUpRl9sL9Txn2Skid9anfu3VG0h",
+  "server": "0.0.0.0",
+  "port": "9443",
+  "check_origin": false,
+  "ssl": true,
+  "cert": {
+    "ssl_key": "./config/ssl/server.key",
+    "ssl_cert": "./config/ssl/server.crt"
+  },
+
+  "endpoint": {
+    "id": "*",
+    "address": "*",
+    "host": "precision",
+    "type": "server",
+    "domain":"local"
+  },
+  "redis_server": "redis",
+  "redis_password": "ch4ng3-m3",
+
+  "telegram_conf": "./config/telegram.json",
+
+
+  "authorized_endpoints": [
+    {
+      "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFu",
+      "name": "local.cli.precision.cli_1.*",
+      "endpoint": {
+        "id": "*",
+        "address": "cli_1",
+        "host": "precision",
+        "type": "cli",
+        "domain":"local"
+      },
+      "enabled": true
+    },
+    {
+      "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFx",
+      "name": "local.cli.precision.cli_2.*",
+      "endpoint": {
+        "id": "*",
+        "address": "cli_2",
+        "host": "precision",
+        "type": "cli",
+        "domain":"local"
+      },
+      "enabled": true
+    },
+    {
+      "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFu",
+      "name": "local.cli.pizeor01.*.*",
+      "endpoint": {
+        "id": "*",
+        "address": "*",
+        "host": "pizero01",
+        "type": "cli",
+        "domain":"local"
+      },
+      "enabled": true
+    }
+  ]
+
+
+}
+
