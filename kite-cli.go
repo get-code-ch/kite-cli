@@ -143,9 +143,22 @@ func (cli *CLI) waitMessage(wait chan bool) {
 			wait <- false
 			return
 		} else {
-			fmt.Println()
-			log.Printf("Message received -> %v", message.Data)
-			fmt.Printf("%s> ", cli.conf.Endpoint)
+			switch message.Action {
+			case kite.LOG: //READLOG response
+				fmt.Println()
+				for idx, lmi := range message.Data.([]interface{}) {
+					lm := kite.LogMessage{}
+					lm = lm.SetFromInterface(lmi)
+					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Format("2006/01/02 15:04:05"), lm.Endpoint, lm.Message)
+				}
+
+				fmt.Printf("%s> ", cli.conf.Endpoint)
+				break
+			default:
+				fmt.Println()
+				log.Printf("Message received -> %v", message.Data)
+				fmt.Printf("%s> ", cli.conf.Endpoint)
+			}
 		}
 	}
 }

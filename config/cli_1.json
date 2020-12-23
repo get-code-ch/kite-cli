@@ -1,9 +1,9 @@
 {
-  "name": "cli",
+  "name": "local.cli.precision.cli_1.*",
   "api_key": "bPQe0b0LtXU5He2k8f5c0LmOruuHFrFu",
   "server": "192.168.10.62",
-  "port": "9443",
-  "ssl": true,
+  "port": "9081",
+  "ssl": false,
   "endpoint": {
     "id": "*",
     "address": "cli_1",
@@ -12,4 +12,3 @@
     "domain": "local"
   }
 }
-
