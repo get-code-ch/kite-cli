@@ -127,7 +127,7 @@ func (cli *CLI) sendSetup(setupFile string) {
 				}
 			}
 			if setupValid {
-				cli.conn.WriteJSON(kite.Message{Action: kite.SETUP, Sender: cli.conf.Endpoint, Data: data})
+				cli.conn.WriteJSON(kite.Message{Action: kite.A_SETUP, Sender: cli.conf.Endpoint, Data: data})
 			}
 
 		}
@@ -144,12 +144,12 @@ func (cli *CLI) waitMessage(wait chan bool) {
 			return
 		} else {
 			switch message.Action {
-			case kite.LOG: //READLOG response
+			case kite.A_LOG: //A_READLOG response
 				fmt.Println()
 				for idx, lmi := range message.Data.([]interface{}) {
 					lm := kite.LogMessage{}
 					lm = lm.SetFromInterface(lmi)
-					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Format("2006/01/02 15:04:05"), lm.Endpoint, lm.Message)
+					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Local().Format("2006/01/02 15:04:05"), lm.Endpoint, lm.Message)
 				}
 
 				fmt.Printf("%s> ", cli.conf.Endpoint)
@@ -171,7 +171,7 @@ func (cli *CLI) sendMessage(wait chan bool, input chan []byte) {
 	for {
 		// Parsing input string
 		if parsed := inputRe.FindSubmatch(<-input); parsed != nil {
-			to := kite.Endpoint{Domain: "*", Type: kite.ANY, Host: "*", Address: "*", Id: "*"}
+			to := kite.Endpoint{Domain: "*", Type: kite.H_ANY, Host: "*", Address: "*", Id: "*"}
 			msg := ""
 
 			action := kite.Action(strings.ToLower(string(parsed[1])))
@@ -179,7 +179,7 @@ func (cli *CLI) sendMessage(wait chan bool, input chan []byte) {
 
 			if err := action.IsValid(); err == nil {
 				switch action {
-				case kite.SETUP:
+				case kite.A_SETUP:
 					cli.sendSetup(string(parsed[3]))
 					break
 				default:
