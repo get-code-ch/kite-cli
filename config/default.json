@@ -1,15 +1,14 @@
 {
-  "name": "cli",
-  "api_key": "",
+  "name": "local.cli.precision.debug.*",
+  "api_key": "95ovén3kljgfhoefdsklhf",
   "server": "192.168.10.62",
-  "port": "9443",
-  "ssl": true,
+  "port": "9081",
+  "ssl": false,
   "endpoint": {
     "id": "*",
-    "address": "*",
+    "address": "debug",
     "host": "precision",
     "type": "cli",
     "domain": "local"
   }
 }
-

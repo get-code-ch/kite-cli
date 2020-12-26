@@ -16,6 +16,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -31,6 +32,7 @@ type CLIConf struct {
 type CLI struct {
 	conf *CLIConf
 	conn *websocket.Conn
+	wg       sync.WaitGroup
 }
 
 const defaultConfigFile = "./config/default.json"
@@ -134,13 +136,13 @@ func (cli *CLI) sendSetup(setupFile string) {
 	}
 }
 
-func (cli *CLI) waitMessage(wait chan bool) {
+func (cli *CLI) waitMessage() {
 	for {
 		message := kite.Message{}
 		//		if _, _, err := cli.conn.ReadMessage(); err != nil {
 		if err := cli.conn.ReadJSON(&message); err != nil {
 			log.Printf("Error on readMessage -> %v", err)
-			wait <- false
+			cli.wg.Done()
 			return
 		} else {
 			switch message.Action {
@@ -163,7 +165,7 @@ func (cli *CLI) waitMessage(wait chan bool) {
 	}
 }
 
-func (cli *CLI) sendMessage(wait chan bool, input chan []byte) {
+func (cli *CLI) sendMessage(input chan []byte) {
 
 	//inputRe := regexp.MustCompile(`^(?:["]?([^"]*)["]?@(.*)?)$|^["]?([^"]*)["]?$`)
 	inputRe := regexp.MustCompile(`^([^:@]*)(?:@([^:]*))?:(.+)$`)
@@ -188,7 +190,7 @@ func (cli *CLI) sendMessage(wait chan bool, input chan []byte) {
 					message := kite.Message{Action: action, Sender: cli.conf.Endpoint, Receiver: to, Data: msg}
 
 					if err := cli.conn.WriteJSON(message); err != nil {
-						wait <- false
+						cli.wg.Done()
 						return
 					}
 				}
@@ -203,13 +205,13 @@ func (cli *CLI) sendMessage(wait chan bool, input chan []byte) {
 	}
 }
 
-func (cli *CLI) readStdin(wait chan bool, input chan []byte) {
+func (cli *CLI) readStdin(input chan []byte) {
 	for {
 		fmt.Printf("%s> ", cli.conf.Endpoint)
 		msg := bufio.NewScanner(os.Stdin)
 		msg.Scan()
 		if len(msg.Bytes()) == 0 {
-			wait <- false
+			cli.wg.Done()
 			return
 		}
 		input <- msg.Bytes()
@@ -220,7 +222,6 @@ func main() {
 	var err error
 	var response *http.Response
 
-	wait := make(chan bool)
 	chanMsg := make(chan []byte)
 
 	// Loading configuration
@@ -238,7 +239,6 @@ func main() {
 	serverURL := url.URL{}
 	if cli.conf.Ssl {
 		serverURL = url.URL{Scheme: "wss", Host: *addr, Path: "/ws"}
-
 	} else {
 		serverURL = url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
 	}
@@ -277,33 +277,25 @@ func main() {
 	msg := kite.Message{Action: "register", Sender: cli.conf.Endpoint, Data: cli.conf.ApiKey}
 	if err := cli.conn.WriteJSON(msg); err != nil {
 		log.Printf("Error registring cli on sever --> %v", err)
-		wait <- false
 	}
 
 	// Reading server response
 	if err = cli.conn.ReadJSON(&msg); err != nil {
 		log.Printf("Error registring cli on sever --> %v", err)
-		wait <- false
 	} else {
 		//TODO: Checking if returned message is an ACCEPT
 		fmt.Println()
 		log.Printf("Message received from %v\n", msg)
 	}
 
+	cli.wg.Add(1)
 	// Listening new server message
-	go cli.waitMessage(wait)
+	go cli.waitMessage()
 
 	// Reading prompt
-	go cli.readStdin(wait, chanMsg)
+	go cli.readStdin(chanMsg)
 
 	// Sending message
-	go cli.sendMessage(wait, chanMsg)
-
-	for {
-		select {
-		case <-wait:
-			log.Println("kite-cli exiting")
-			return
-		}
-	}
+	go cli.sendMessage(chanMsg)
+	cli.wg.Wait()
 }
