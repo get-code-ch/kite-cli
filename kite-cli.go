@@ -21,12 +21,12 @@ import (
 )
 
 type CLIConf struct {
-	Name     string        `json:"name"`
-	ApiKey   string        `json:"api_key"`
-	Server   string        `json:"server"`
-	Port     string        `json:"port"`
-	Ssl      bool          `json:"ssl"`
-	Endpoint kite.Endpoint `json:"endpoint"`
+	Name    string       `json:"name"`
+	ApiKey  string       `json:"api_key"`
+	Server  string       `json:"server"`
+	Port    string       `json:"port"`
+	Ssl     bool         `json:"ssl"`
+	Address kite.Address `json:"address"`
 }
 
 type CLI struct {
@@ -129,7 +129,7 @@ func (cli *CLI) sendSetup(setupFile string) {
 				}
 			}
 			if setupValid {
-				cli.conn.WriteJSON(kite.Message{Action: kite.A_SETUP, Sender: cli.conf.Endpoint, Data: data})
+				cli.conn.WriteJSON(kite.Message{Action: kite.A_SETUP, Sender: cli.conf.Address, Data: data})
 			}
 
 		}
@@ -151,15 +151,15 @@ func (cli *CLI) waitMessage() {
 				for idx, lmi := range message.Data.([]interface{}) {
 					lm := kite.LogMessage{}
 					lm = lm.SetFromInterface(lmi)
-					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Local().Format("2006/01/02 15:04:05"), lm.Endpoint, lm.Message)
+					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Local().Format("2006/01/02 15:04:05"), lm.Address, lm.Message)
 				}
 
-				fmt.Printf("%s> ", cli.conf.Endpoint)
+				fmt.Printf("%s> ", cli.conf.Address)
 				break
 			default:
 				fmt.Println()
 				log.Printf("Message received -> %v", message.Data)
-				fmt.Printf("%s> ", cli.conf.Endpoint)
+				fmt.Printf("%s> ", cli.conf.Address)
 			}
 		}
 	}
@@ -173,11 +173,11 @@ func (cli *CLI) sendMessage(input chan []byte) {
 	for {
 		// Parsing input string
 		if parsed := inputRe.FindSubmatch(<-input); parsed != nil {
-			to := kite.Endpoint{Domain: "*", Type: kite.H_ANY, Host: "*", Address: "*", Id: "*"}
+			to := kite.Address{Domain: "*", Type: kite.H_ANY, Host: "*", Address: "*", Id: "*"}
 			msg := ""
 
 			action := kite.Action(strings.ToLower(string(parsed[1])))
-			to.StringToEndpoint(string(parsed[2]))
+			to.StringToAddress(string(parsed[2]))
 
 			if err := action.IsValid(); err == nil {
 				switch action {
@@ -187,7 +187,7 @@ func (cli *CLI) sendMessage(input chan []byte) {
 				default:
 					msg = string(parsed[3])
 
-					message := kite.Message{Action: action, Sender: cli.conf.Endpoint, Receiver: to, Data: msg}
+					message := kite.Message{Action: action, Sender: cli.conf.Address, Receiver: to, Data: msg}
 
 					if err := cli.conn.WriteJSON(message); err != nil {
 						cli.wg.Done()
@@ -196,18 +196,18 @@ func (cli *CLI) sendMessage(input chan []byte) {
 				}
 			} else {
 				log.Printf("%s", err)
-				fmt.Printf("%s> ", cli.conf.Endpoint)
+				fmt.Printf("%s> ", cli.conf.Address)
 			}
 		} else {
 			log.Printf("Invalid command ({action}[@{destination}]{:{message}})")
-			fmt.Printf("%s> ", cli.conf.Endpoint)
+			fmt.Printf("%s> ", cli.conf.Address)
 		}
 	}
 }
 
 func (cli *CLI) readStdin(input chan []byte) {
 	for {
-		fmt.Printf("%s> ", cli.conf.Endpoint)
+		fmt.Printf("%s> ", cli.conf.Address)
 		msg := bufio.NewScanner(os.Stdin)
 		msg.Scan()
 		if len(msg.Bytes()) == 0 {
@@ -274,7 +274,7 @@ func main() {
 	})
 
 	// Connection is now established, now we sending cli registration to server
-	msg := kite.Message{Action: "register", Sender: cli.conf.Endpoint, Data: cli.conf.ApiKey}
+	msg := kite.Message{Action: "register", Sender: cli.conf.Address, Data: cli.conf.ApiKey}
 	if err := cli.conn.WriteJSON(msg); err != nil {
 		log.Printf("Error registring cli on sever --> %v", err)
 	}
