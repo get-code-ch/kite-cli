@@ -180,6 +180,7 @@ func (cli *CLI) sendMessage(input chan []byte) {
 			to.StringToAddress(string(parsed[2]))
 
 			if err := action.IsValid(); err == nil {
+				//log.Printf("Action --> %s", action)
 				switch action {
 				case kite.A_SETUP:
 					cli.sendSetup(string(parsed[3]))
@@ -274,18 +275,20 @@ func main() {
 	})
 
 	// Connection is now established, now we sending cli registration to server
-	msg := kite.Message{Action: "register", Sender: cli.conf.Address, Data: cli.conf.ApiKey}
-	if err := cli.conn.WriteJSON(msg); err != nil {
+	message := kite.Message{Action: "register", Sender: cli.conf.Address, Data: cli.conf.ApiKey}
+	if err := cli.conn.WriteJSON(message); err != nil {
 		log.Printf("Error registring cli on sever --> %v", err)
 	}
 
 	// Reading server response
-	if err = cli.conn.ReadJSON(&msg); err != nil {
+	if err = cli.conn.ReadJSON(&message); err != nil {
 		log.Printf("Error registring cli on sever --> %v", err)
 	} else {
-		//TODO: Checking if returned message is an ACCEPT
-		fmt.Println()
-		log.Printf("Message received from %v\n", msg)
+		if message.Action == kite.A_ACCEPTED {
+			log.Printf("\nConnection accepted from %s\n", message.Sender)
+		} else {
+			log.Printf("\nUnattended response from %s\n", message.Sender)
+		}
 	}
 
 	cli.wg.Add(1)
