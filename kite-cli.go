@@ -167,7 +167,6 @@ func (cli *CLI) waitMessage() {
 
 func (cli *CLI) sendMessage(input chan []byte) {
 
-	//inputRe := regexp.MustCompile(`^(?:["]?([^"]*)["]?@(.*)?)$|^["]?([^"]*)["]?$`)
 	inputRe := regexp.MustCompile(`^([^:@]*)(?:@([^:]*))?:(.+)$`)
 
 	for {
@@ -178,6 +177,11 @@ func (cli *CLI) sendMessage(input chan []byte) {
 
 			action := kite.Action(strings.ToLower(string(parsed[1])))
 			to.StringToAddress(string(parsed[2]))
+
+			// No wildcard is authorized if no domain is selected endpoint domain is filled
+			if to.Domain == "*" {
+				to.Domain = cli.conf.Address.Domain
+			}
 
 			if err := action.IsValid(); err == nil {
 				//log.Printf("Action --> %s", action)
