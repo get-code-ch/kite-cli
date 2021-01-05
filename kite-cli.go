@@ -32,7 +32,7 @@ type CLIConf struct {
 type CLI struct {
 	conf *CLIConf
 	conn *websocket.Conn
-	wg       sync.WaitGroup
+	wg   sync.WaitGroup
 }
 
 const defaultConfigFile = "./config/default.json"
@@ -148,17 +148,33 @@ func (cli *CLI) waitMessage() {
 			switch message.Action {
 			case kite.A_LOG: //A_READLOG response
 				fmt.Println()
-				for idx, lmi := range message.Data.([]interface{}) {
+				for _, lmi := range message.Data.([]interface{}) {
 					lm := kite.LogMessage{}
 					lm = lm.SetFromInterface(lmi)
-					fmt.Printf("%d- Log ->%s %s, %s\n", idx, lm.Time.Local().Format("2006/01/02 15:04:05"), lm.Address, lm.Message)
+					fmt.Printf("%s %s, %s\n", lm.Time.Local().Format("2006/01/02 15:04:05"), lm.Address, lm.Message)
 				}
 
 				fmt.Printf("%s> ", cli.conf.Address)
 				break
+			case kite.A_VALUE:
+				fmt.Println()
+				/*
+					for key, value := range message.Data.(map[string]interface{}) {
+						fmt.Printf("%s %v (%s)\n", key, value, reflect.TypeOf(value).String())
+					}
+				*/
+				data := message.Data.(map[string]interface{})
+				if dataType := data["type"].(string); dataType == "gpio" {
+					fmt.Printf("Value for %s --> %t\n", data["description"].(string), data["value"].(bool))
+
+				} else {
+					fmt.Printf("Value for %s --> %.2f %s\n", data["description"].(string), data["value"].(float64), data["unit"].(string))
+				}
+				fmt.Printf("%s> ", cli.conf.Address)
+				break
 			default:
 				fmt.Println()
-				log.Printf("Message received -> %v", message.Data)
+				log.Printf("Message received (%s) ->  %v", message.Action, message.Data)
 				fmt.Printf("%s> ", cli.conf.Address)
 			}
 		}
