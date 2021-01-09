@@ -3,3 +3,5 @@
 /build/
 /build/*
 go.sum
+/node_modules/
+/package-lock.json
