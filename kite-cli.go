@@ -129,7 +129,9 @@ func (cli *CLI) sendSetup(setupFile string) {
 				}
 			}
 			if setupValid {
-				cli.conn.WriteJSON(kite.Message{Action: kite.A_SETUP, Sender: cli.conf.Address, Data: data})
+				if err := cli.conn.WriteJSON(kite.Message{Action: kite.A_SETUP, Sender: cli.conf.Address, Data: data}); err != nil {
+					log.Printf("Error sending configuration --> %v", err)
+				}
 			}
 
 		}
@@ -164,12 +166,20 @@ func (cli *CLI) waitMessage() {
 					}
 				*/
 				data := message.Data.(map[string]interface{})
-				if dataType := data["type"].(string); dataType == "gpio" {
+				switch data["type"].(string) {
+				case "gpio":
 					fmt.Printf("Value for %s --> %t\n", data["description"].(string), data["value"].(bool))
-
-				} else {
+					break
+				case "float":
 					fmt.Printf("Value for %s --> %.2f %s\n", data["description"].(string), data["value"].(float64), data["unit"].(string))
+					break
+				case "string":
+					fmt.Printf("Value for %s --> %s %s\n", data["description"].(string), data["value"].(string), data["unit"].(string))
+					break
+				default:
+
 				}
+				// Printing prompt
 				fmt.Printf("%s> ", cli.conf.Address)
 				break
 			default:
