@@ -5,3 +5,5 @@
 go.sum
 /node_modules/
 /package-lock.json
+/export/
+/export/*

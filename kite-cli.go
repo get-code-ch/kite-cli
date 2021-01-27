@@ -30,9 +30,10 @@ type CLIConf struct {
 }
 
 type CLI struct {
-	conf *CLIConf
-	conn *websocket.Conn
-	wg   sync.WaitGroup
+	conf     *CLIConf
+	conn     *websocket.Conn
+	wg       sync.WaitGroup
+	filename string
 }
 
 const defaultConfigFile = "./config/default.json"
@@ -182,6 +183,23 @@ func (cli *CLI) waitMessage() {
 				// Printing prompt
 				fmt.Printf("%s> ", cli.conf.Address)
 				break
+			case kite.A_EXPORT:
+				if _, err := os.Stat(cli.filename); err != nil {
+					if !os.IsNotExist(err) {
+						cli.filename = ""
+					}
+				}
+
+				if cli.filename == "" {
+					log.Printf("Export error, missing or wrong filename (%s)\n", cli.filename)
+					fmt.Printf("%s> ", cli.conf.Address)
+					break
+				}
+				if content, err := json.Marshal(message.Data); err == nil {
+					ioutil.WriteFile(cli.filename, content, os.ModePerm)
+					cli.filename = ""
+				}
+				break
 			default:
 				fmt.Println()
 				log.Printf("Message received (%s) ->  %v", message.Action, message.Data)
@@ -193,7 +211,7 @@ func (cli *CLI) waitMessage() {
 
 func (cli *CLI) sendMessage(input chan []byte) {
 
-	inputRe := regexp.MustCompile(`^([^:@]*)(?:@([^:]*))?:(.+)$`)
+	inputRe := regexp.MustCompile(`^([^:@]*)(?:@([^:]*))?(?::(.+))?$`)
 
 	for {
 		// Parsing input string
@@ -215,8 +233,33 @@ func (cli *CLI) sendMessage(input chan []byte) {
 				case kite.A_SETUP:
 					cli.sendSetup(string(parsed[3]))
 					break
+				case kite.A_EXPORT:
+					if len(parsed) == 4 {
+						cli.filename = string(parsed[3])
+					}
+
+					if _, err := os.Stat(cli.filename); err != nil {
+						if !os.IsNotExist(err) {
+							cli.filename = ""
+						}
+					}
+
+					if cli.filename == "" {
+						log.Printf("Export error, missing or wrong filename (%s)\n", cli.filename)
+						fmt.Printf("%s> ", cli.conf.Address)
+						break
+					}
+					message := kite.Message{Action: action, Sender: cli.conf.Address, Receiver: to, Data: msg}
+
+					if err := cli.conn.WriteJSON(message); err != nil {
+						cli.wg.Done()
+						return
+					}
+					break
 				default:
-					msg = string(parsed[3])
+					if len(parsed) == 4 {
+						msg = string(parsed[3])
+					}
 
 					message := kite.Message{Action: action, Sender: cli.conf.Address, Receiver: to, Data: msg}
 
@@ -230,7 +273,7 @@ func (cli *CLI) sendMessage(input chan []byte) {
 				fmt.Printf("%s> ", cli.conf.Address)
 			}
 		} else {
-			log.Printf("Invalid command ({action}[@{destination}]{:{message}})")
+			log.Printf("Invalid command ({action}[@{destination}]{:message})")
 			fmt.Printf("%s> ", cli.conf.Address)
 		}
 	}
@@ -261,6 +304,7 @@ func main() {
 		configFile = os.Args[1]
 	}
 	cli := new(CLI)
+	cli.filename = ""
 	cli.conf = loadConfig(configFile)
 
 	// Configure Server URL
