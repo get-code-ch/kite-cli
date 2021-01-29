@@ -233,6 +233,29 @@ func (cli *CLI) sendMessage(input chan []byte) {
 				case kite.A_SETUP:
 					cli.sendSetup(string(parsed[3]))
 					break
+				case kite.A_IMPORT:
+					filename := ""
+					if len(parsed) == 4 {
+						filename = string(parsed[3])
+					}
+
+					if _, err := os.Stat(filename); err != nil || filename == "" {
+					}
+
+					if content, err := ioutil.ReadFile(filename); err != nil {
+						log.Printf("Import error, somehting wrong with file %s --> %v \n", filename, err)
+						break
+					} else {
+						msg = string(content)
+					}
+
+					message := kite.Message{Action: action, Sender: cli.conf.Address, Receiver: to, Data: msg}
+
+					if err := cli.conn.WriteJSON(message); err != nil {
+						cli.wg.Done()
+						return
+					}
+					break
 				case kite.A_EXPORT:
 					if len(parsed) == 4 {
 						cli.filename = string(parsed[3])
@@ -246,7 +269,7 @@ func (cli *CLI) sendMessage(input chan []byte) {
 
 					if cli.filename == "" {
 						log.Printf("Export error, missing or wrong filename (%s)\n", cli.filename)
-						fmt.Printf("%s> ", cli.conf.Address)
+						//fmt.Printf("%s> ", cli.conf.Address)
 						break
 					}
 					message := kite.Message{Action: action, Sender: cli.conf.Address, Receiver: to, Data: msg}
